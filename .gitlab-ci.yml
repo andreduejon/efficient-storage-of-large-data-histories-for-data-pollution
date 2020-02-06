@@ -1,0 +1,11 @@
+build:
+  stage: build
+  script:
+    - sh build.sh
+  artifacts:
+    paths:
+      - target/calculator-1.0.jar
+test:
+  stage: test
+  script:
+    - sh test.sh
