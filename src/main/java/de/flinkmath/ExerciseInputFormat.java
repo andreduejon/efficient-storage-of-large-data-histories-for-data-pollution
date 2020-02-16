@@ -1,7 +1,5 @@
 package de.flinkmath;
 
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -19,7 +17,6 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -190,7 +187,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                             initialCheckpointDoc.getString("mail_zipcode")
                     );
                     obj.addCheckPointList(checkpoint);
-                    System.out.println(obj.toString());
 
                     List<Document> updates = (List<Document>) myDoc.get("updates");
                     for(Document updateDoc: updates) {
