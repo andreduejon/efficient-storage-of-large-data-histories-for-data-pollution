@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 
 public class Checkpoint {
     private String ncid;
-    private int checkpointId;
-    private int lastUpdate;
+    private Integer checkpointId;
+    private Integer lastUpdate;
     private LocalDateTime timestamp;
     private String countyId;
     private String countyDesc;
@@ -45,7 +45,7 @@ public class Checkpoint {
     private String mailState;
     private String mailZipCode;
 
-    public Checkpoint(String ncid, int checkpointId, int lastUpdate, LocalDateTime timestamp, String countyId,
+    public Checkpoint(String ncid, Integer checkpointId, Integer lastUpdate, LocalDateTime timestamp, String countyId,
                       String countyDesc, String lastName, String firstName, String midlName, String houseNum,
                       String streetDir, String streetName, String resCityDesc, String stateCd, String zipCode,
                       String areaCd, String phoneNum, String raceCd, String raceDesc, String ethnicCd,
@@ -108,7 +108,7 @@ public class Checkpoint {
         return checkpointId;
     }
 
-    public void setCheckpointId(int checkpointId) {
+    public void setCheckpointId(Integer checkpointId) {
         this.checkpointId = checkpointId;
     }
 
@@ -116,7 +116,7 @@ public class Checkpoint {
         return lastUpdate;
     }
 
-    public void setLastUpdate(int lastUpdate) {
+    public void setLastUpdate(Integer lastUpdate) {
         this.lastUpdate = lastUpdate;
     }
 

@@ -4,13 +4,13 @@ import java.time.LocalDateTime;
 
 public class Update {
     private String ncid;
-    private int updateId;
-    private int updateGroup;
+    private Integer updateId;
+    private Integer updateGroup;
     private LocalDateTime timestamp;
     private String attribute;
     private String value;
 
-    public Update(String ncid, int updateId, int updateGroup, LocalDateTime timestamp, String attribute, String value) {
+    public Update(String ncid, Integer updateId, Integer updateGroup, LocalDateTime timestamp, String attribute, String value) {
         this.ncid = ncid;
         this.updateId = updateId;
         this.updateGroup = updateGroup;
@@ -31,7 +31,7 @@ public class Update {
         return updateId;
     }
 
-    public void setUpdateId(int updateId) {
+    public void setUpdateId(Integer updateId) {
         this.updateId = updateId;
     }
 
@@ -39,7 +39,7 @@ public class Update {
         return updateGroup;
     }
 
-    public void setUpdateGroup(int updateGroup) {
+    public void setUpdateGroup(Integer updateGroup) {
         this.updateGroup = updateGroup;
     }
 
