@@ -1,18 +1,25 @@
 package de.flinkmath;
 
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
 
 import java.io.*;
-import java.sql.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -112,103 +119,30 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
         long endTime1 = System.nanoTime();
         long timeElapsed = endTime1 - startTime1;
-        Connection c = null;
-        Statement stmt = null;
         try {
             long startTime2 = System.nanoTime();
-            Class.forName("org.postgresql.Driver");
-            c = DriverManager
-                    .getConnection("jdbc:postgresql://localhost:5433/history-1000000",
-                            "postgres", "");
+            MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+
+            MongoDatabase database = mongoClient.getDatabase("history");
+            MongoCollection<Document> collection = database.getCollection("data");
             long endTime2 = System.nanoTime();
             long timeElapsed2 = endTime2 - startTime2;
 
             long startTime3 = System.nanoTime();
             if(ncidBatch.length > 0) {
                 for (String ncid: ncidBatch) {
-                    stmt = c.createStatement();
-                    // History Object
+                    Document myDoc = collection.find(eq("_id", ncid)).first();
                     HistoryObjects obj = new HistoryObjects();
-                    String sqlObject = "Select * from public.objects WHERE nc_id = '" + ncid + "';";
-                    ResultSet rs = stmt.executeQuery(sqlObject);
-                    while (rs.next()) {
-                        obj.setNcid(rs.getString(1));
-                        obj.setUpdates(rs.getInt(2));
-                        obj.setUpdateGroups(rs.getInt(3));
-                        obj.setCheckpoints(rs.getInt(4));
-                        obj.setCheckpointList(new ArrayList<>());
-                        obj.setUpdateList(new ArrayList<>());
-                    }
-                    String sqlCheckpoints = "Select * from public.checkpoints WHERE nc_id = '" + ncid + "' AND last_update IS NULL;";
-                    rs = stmt.executeQuery(sqlCheckpoints);
-                    while (rs.next()) {
-                        Checkpoint checkpoint = new Checkpoint(
-                                rs.getString(2),
-                                rs.getInt(1),
-                                rs.getInt(3),
-                                rs.getTimestamp(4).toLocalDateTime(),
-                                rs.getString(5),
-                                rs.getString(6),
-                                rs.getString(7),
-                                rs.getString(8),
-                                rs.getString(9),
-                                rs.getString(10),
-                                rs.getString(11),
-                                rs.getString(12),
-                                rs.getString(13),
-                                rs.getString(14),
-                                rs.getString(15),
-                                rs.getString(16),
-                                rs.getString(17),
-                                rs.getString(18),
-                                rs.getString(19),
-                                rs.getString(20),
-                                rs.getString(21),
-                                rs.getString(22),
-                                rs.getString(23),
-                                rs.getString(24),
-                                rs.getString(25),
-                                rs.getString(26),
-                                rs.getString(27),
-                                rs.getString(28),
-                                rs.getString(29),
-                                rs.getString(30),
-                                rs.getString(31),
-                                rs.getString(32),
-                                rs.getString(33),
-                                rs.getString(34),
-                                rs.getString(35),
-                                rs.getString(36),
-                                rs.getString(37),
-                                rs.getString(38),
-                                rs.getString(39),
-                                rs.getString(40),
-                                rs.getString(41));
-                        obj.addCheckPointList(checkpoint);
-                    }
-                    String sqlUpdates = "Select * from public.updates WHERE nc_id = '" + ncid + "';";
-                    rs = stmt.executeQuery(sqlUpdates);
-                    while (rs.next()) {
-                        Update update = new Update(
-                                rs.getString(3),
-                                rs.getInt(1),
-                                rs.getInt(2),
-                                rs.getTimestamp(4).toLocalDateTime(),
-                                rs.getString(5),
-                                rs.getString(6)
-                        );
-                        obj.addUpdateList(update);
-                    }
-                    // Time-out the process to simulate more realistic calculation pattern. This should account
-                    // for the fact that histories of different size take a different amount of time to process.
-                    TimeUnit.MILLISECONDS.sleep(Math.round(obj.getUpdates()*Float.parseFloat(this.processingTime)));
-                    stmt.close();
+                    obj.setNcid(myDoc.get("_id").toString());
+                    obj.setUpdates(Integer.parseInt(myDoc.get("update-count").toString()));
+                    obj.setCheckpoints(Integer.parseInt(myDoc.get("checkpoint-count").toString()));
+                    obj.setUpdateGroups(Integer.parseInt(myDoc.get("update-group-count").toString()));
+                    System.out.println(obj.toString());
                 }
             }
             long endTime3 = System.nanoTime();
             long timeElapsed3 = endTime3 - startTime3;
             System.out.println("Finished processing Batch. Stats(Prepare Batch: " + timeElapsed / 1000000 + "ms, Processed batch in: " + timeElapsed3 / 1000000 + "ms, DB connection time: " + timeElapsed2 / 1000000 + "ms.)");
-            c.close();
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName()+": "+e.getMessage());
