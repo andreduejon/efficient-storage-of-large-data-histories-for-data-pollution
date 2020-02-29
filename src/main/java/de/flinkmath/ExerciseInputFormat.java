@@ -1,25 +1,22 @@
 package de.flinkmath;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.datastax.driver.core.*;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
-import org.bson.Document;
-import static com.mongodb.client.model.Filters.*;
 
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+
 import java.util.Iterator;
 import java.util.List;
 
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -121,87 +118,86 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
         long timeElapsed = endTime1 - startTime1;
         try {
             long startTime2 = System.nanoTime();
-            MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
-
-            MongoDatabase database = mongoClient.getDatabase("history");
-            MongoCollection<Document> collection = database.getCollection("data");
+            Cluster cluster = Cluster.builder().addContactPoint("localhost").build();
+            Session session = cluster.connect("history");
             long endTime2 = System.nanoTime();
             long timeElapsed2 = endTime2 - startTime2;
 
             long startTime3 = System.nanoTime();
             if(ncidBatch.length > 0) {
                 for (String ncid: ncidBatch) {
-                    Document myDoc = collection.find(eq("_id", ncid)).first();
-                    HistoryObjects obj = new HistoryObjects();
+                    ResultSet rs = session.execute("select * from data where ncid = '" + ncid + "'" );
+                    if(rs != null) {
+                        HistoryObjects obj = new HistoryObjects();
+                        obj.setNcid(ncid);
+                        obj.setCheckpointList(new ArrayList<>());
+                        obj.setUpdateList(new ArrayList<>());
 
-                    obj.setNcid(ncid);
-                    obj.setUpdates(myDoc.getInteger("update-count"));
-                    obj.setCheckpoints(myDoc.getInteger("checkpoint-count"));
-                    obj.setUpdateGroups(myDoc.getInteger("update-group-count"));
-                    obj.setCheckpointList(new ArrayList<>());
-                    obj.setUpdateList(new ArrayList<>());
-
-                    List<Document> checkpoints = (List<Document>) myDoc.get("checkpoints");
-                    Document initialCheckpointDoc = checkpoints.get(0);
-                    Checkpoint checkpoint = new Checkpoint(
-                            ncid,
-                            initialCheckpointDoc.getInteger("checkpoint_id"),
-                            null,
-                            LocalDateTime.ofInstant(initialCheckpointDoc.getDate("timestamp").toInstant(), ZoneId.systemDefault()),
-                            initialCheckpointDoc.getString("county_id"),
-                            initialCheckpointDoc.getString("county_desc"),
-                            initialCheckpointDoc.getString("last_name"),
-                            initialCheckpointDoc.getString("first_name"),
-                            initialCheckpointDoc.getString("midl_name"),
-                            initialCheckpointDoc.getString("house_num"),
-                            initialCheckpointDoc.getString("street_dir"),
-                            initialCheckpointDoc.getString("street_name"),
-                            initialCheckpointDoc.getString("res_city_desc"),
-                            initialCheckpointDoc.getString("state_cd"),
-                            initialCheckpointDoc.getString("zip_code"),
-                            initialCheckpointDoc.getString("area_cd"),
-                            initialCheckpointDoc.getString("phone_num"),
-                            initialCheckpointDoc.getString("race_code"),
-                            initialCheckpointDoc.getString("race_desc"),
-                            initialCheckpointDoc.getString("ethnic_code"),
-                            initialCheckpointDoc.getString("ethnic_desc"),
-                            initialCheckpointDoc.getString("party_cd"),
-                            initialCheckpointDoc.getString("party_desc"),
-                            initialCheckpointDoc.getString("sex_code"),
-                            initialCheckpointDoc.getString("sex"),
-                            initialCheckpointDoc.getString("age"),
-                            initialCheckpointDoc.getString("age_group"),
-                            initialCheckpointDoc.getString("name_prefx_cd"),
-                            initialCheckpointDoc.getString("name_sufx_cd"),
-                            initialCheckpointDoc.getString("half_code"),
-                            initialCheckpointDoc.getString("street_type_cd"),
-                            initialCheckpointDoc.getString("street_sufx_cd"),
-                            initialCheckpointDoc.getString("unit_designator"),
-                            initialCheckpointDoc.getString("unit_num"),
-                            initialCheckpointDoc.getString("mail_addr1"),
-                            initialCheckpointDoc.getString("mail_addr2"),
-                            initialCheckpointDoc.getString("mail_addr3"),
-                            initialCheckpointDoc.getString("mail_addr4"),
-                            initialCheckpointDoc.getString("mail_city"),
-                            initialCheckpointDoc.getString("mail_state"),
-                            initialCheckpointDoc.getString("mail_zipcode")
-                    );
-                    obj.addCheckPointList(checkpoint);
-
-                    List<Document> updates = (List<Document>) myDoc.get("updates");
-                    for(Document updateDoc: updates) {
-                        Update update = new Update(
-                                ncid,
-                                updateDoc.getInteger("update"),
-                                updateDoc.getInteger("update-group"),
-                                LocalDateTime.ofInstant(updateDoc.getDate("timestamp").toInstant(), ZoneId.systemDefault()),
-                                updateDoc.getString("attribute"),
-                                updateDoc.getString("value")
-                        );
-                        obj.addUpdateList(update);
+                        for(Row row : rs) {
+                            if(row.getString("event_type").equals("update")) {
+                                Update update = new Update(
+                                        ncid,
+                                        row.getInt("event_id"),
+                                        row.getInt("event_id"),
+                                        LocalDateTime.ofInstant(row.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
+                                        row.getString("attribute"),
+                                        row.getString("value")
+                                );
+                                obj.addUpdateList(update);
+                            } else {
+                                Checkpoint checkpoint = new Checkpoint(
+                                        ncid,
+                                        row.getInt("event_id"),
+                                        null,
+                                        LocalDateTime.ofInstant(row.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
+                                        row.getString("county_id"),
+                                        row.getString("county_desc"),
+                                        row.getString("last_name"),
+                                        row.getString("first_name"),
+                                        row.getString("midl_name"),
+                                        row.getString("house_num"),
+                                        row.getString("street_dir"),
+                                        row.getString("street_name"),
+                                        row.getString("res_city_desc"),
+                                        row.getString("state_cd"),
+                                        row.getString("zip_code"),
+                                        row.getString("area_cd"),
+                                        row.getString("phone_num"),
+                                        row.getString("race_code"),
+                                        row.getString("race_desc"),
+                                        row.getString("ethnic_code"),
+                                        row.getString("ethnic_desc"),
+                                        row.getString("party_cd"),
+                                        row.getString("party_desc"),
+                                        row.getString("sex_code"),
+                                        row.getString("sex"),
+                                        row.getString("age"),
+                                        row.getString("age_group"),
+                                        row.getString("name_prefx_cd"),
+                                        row.getString("name_sufx_cd"),
+                                        row.getString("half_code"),
+                                        row.getString("street_type_cd"),
+                                        row.getString("street_sufx_cd"),
+                                        row.getString("unit_designator"),
+                                        row.getString("unit_num"),
+                                        row.getString("mail_addr1"),
+                                        row.getString("mail_addr2"),
+                                        row.getString("mail_addr3"),
+                                        row.getString("mail_addr4"),
+                                        row.getString("mail_city"),
+                                        row.getString("mail_state"),
+                                        row.getString("mail_zipcode")
+                                );
+                                obj.addCheckPointList(checkpoint);
+                            }
+                        }
+                        // Time-out the process to simulate more realistic calculation pattern. This should account
+                        // for the fact that histories of different size take a different amount of time to process.
+                        TimeUnit.MILLISECONDS.sleep(Math.round(obj.getUpdates()*Float.parseFloat(this.processingTime)));
                     }
                 }
             }
+            cluster.close();
             long endTime3 = System.nanoTime();
             long timeElapsed3 = endTime3 - startTime3;
             System.out.println("Finished processing Batch. Stats(Prepare Batch: " + timeElapsed / 1000000 + "ms, Processed batch in: " + timeElapsed3 / 1000000 + "ms, DB connection time: " + timeElapsed2 / 1000000 + "ms.)");
