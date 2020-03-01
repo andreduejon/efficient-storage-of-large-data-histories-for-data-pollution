@@ -59,50 +59,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
         return inputSplits;
     }
 
-    /*
-    @Override
-    public SheetInputSplit5[] createInputSplits(int i) throws IOException {
-        log("Creating input splits");
-        List<String> sheetConfigStrings = readFile(configFileName);
-        return IntStream.range(0, sheetConfigStrings.size())
-                .mapToObj((int index) -> {
-                    String sheetConfigString = sheetConfigStrings.get(index);
-                    String[] sheetConfigSplit = sheetConfigString.split(" ");
-                    return new SheetInputSplit5(
-                            index,
-                            sheetConfigSplit[0],
-                            sheetConfigSplit[1],
-                            sheetConfigSplit[2],
-                            sheetConfigSplit[3],
-                            sheetConfigSplit[4],
-                            sheetConfigSplit[5]);
-                }).toArray(SheetInputSplit5[]::new);
-    }
-
-    @Override
-    public SheetInputSplit10[] createInputSplits(int i) throws IOException {
-        log("Creating input splits");
-        List<String> sheetConfigStrings = readFile(configFileName);
-        return IntStream.range(0, sheetConfigStrings.size())
-                .mapToObj((int index) -> {
-                    String sheetConfigString = sheetConfigStrings.get(index);
-                    String[] sheetConfigSplit = sheetConfigString.split(" ");
-                    return new SheetInputSplit10(
-                            index,
-                            sheetConfigSplit[0],
-                            sheetConfigSplit[1],
-                            sheetConfigSplit[2],
-                            sheetConfigSplit[3],
-                            sheetConfigSplit[4],
-                            sheetConfigSplit[5],
-                            sheetConfigSplit[6],
-                            sheetConfigSplit[7],
-                            sheetConfigSplit[8],
-                            sheetConfigSplit[9],
-                            sheetConfigSplit[10]);
-                }).toArray(SheetInputSplit10[]::new);
-    }
-    */
     @Override
     public InputSplitAssigner getInputSplitAssigner(SheetInputSplit1[] sheetInputSplits) {
         log("InputSplitAssigner requested");
@@ -111,96 +67,108 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
     @Override
     public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
+        String m1 = "";
+        String m2 = "";
+        String m3 = "";
+        String m4 = "";
+        String m5 = "";
         this.sheetInputSplit1 = sheetInputSplit1;
-        long startTime1 = System.nanoTime();
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
-        long endTime1 = System.nanoTime();
-        long timeElapsed = endTime1 - startTime1;
         try {
             long startTime2 = System.nanoTime();
             Cluster cluster = Cluster.builder().addContactPoint("localhost").build();
             Session session = cluster.connect("history");
             long endTime2 = System.nanoTime();
-            long timeElapsed2 = endTime2 - startTime2;
+            m1 = "Connection: " + (endTime2-startTime2) + "ns";
 
             long startTime3 = System.nanoTime();
             if(ncidBatch.length > 0) {
                 for (String ncid: ncidBatch) {
+                    long q1 = System.nanoTime();
                     ResultSet rs = session.execute("select * from data where ncid = '" + ncid + "'" );
+                    long q1e = System.nanoTime();
+                    m2 = "Query: " + (q1e-q1) + "ns";
                     if(rs != null) {
+                        long p1 = System.nanoTime();
                         HistoryObjects obj = new HistoryObjects();
                         obj.setNcid(ncid);
                         obj.setCheckpointList(new ArrayList<>());
                         obj.setUpdateList(new ArrayList<>());
+                        Row row = rs.one();
+                        Checkpoint checkpoint = new Checkpoint(
+                                ncid,
+                                row.getInt("event_id"),
+                                null,
+                                LocalDateTime.ofInstant(row.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
+                                row.getString("county_id"),
+                                row.getString("county_desc"),
+                                row.getString("last_name"),
+                                row.getString("first_name"),
+                                row.getString("midl_name"),
+                                row.getString("house_num"),
+                                row.getString("street_dir"),
+                                row.getString("street_name"),
+                                row.getString("res_city_desc"),
+                                row.getString("state_cd"),
+                                row.getString("zip_code"),
+                                row.getString("area_cd"),
+                                row.getString("phone_num"),
+                                row.getString("race_code"),
+                                row.getString("race_desc"),
+                                row.getString("ethnic_code"),
+                                row.getString("ethnic_desc"),
+                                row.getString("party_cd"),
+                                row.getString("party_desc"),
+                                row.getString("sex_code"),
+                                row.getString("sex"),
+                                row.getString("age"),
+                                row.getString("age_group"),
+                                row.getString("name_prefx_cd"),
+                                row.getString("name_sufx_cd"),
+                                row.getString("half_code"),
+                                row.getString("street_type_cd"),
+                                row.getString("street_sufx_cd"),
+                                row.getString("unit_designator"),
+                                row.getString("unit_num"),
+                                row.getString("mail_addr1"),
+                                row.getString("mail_addr2"),
+                                row.getString("mail_addr3"),
+                                row.getString("mail_addr4"),
+                                row.getString("mail_city"),
+                                row.getString("mail_state"),
+                                row.getString("mail_zipcode")
+                        );
+                        obj.addCheckPointList(checkpoint);
 
-                        for(Row row : rs) {
-                            if(row.getString("event_type").equals("update")) {
+                        for(Row r : rs) {
+                            if(r.getString("event_type").equals("update")) {
                                 Update update = new Update(
                                         ncid,
-                                        row.getInt("event_id"),
-                                        row.getInt("event_id"),
-                                        LocalDateTime.ofInstant(row.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
-                                        row.getString("attribute"),
-                                        row.getString("value")
+                                        r.getInt("event_id"),
+                                        r.getInt("event_id"),
+                                        LocalDateTime.ofInstant(r.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
+                                        r.getString("attribute"),
+                                        r.getString("value")
                                 );
                                 obj.addUpdateList(update);
-                            } else {
-                                Checkpoint checkpoint = new Checkpoint(
-                                        ncid,
-                                        row.getInt("event_id"),
-                                        null,
-                                        LocalDateTime.ofInstant(row.getTimestamp("timestamp").toInstant(), ZoneId.systemDefault()),
-                                        row.getString("county_id"),
-                                        row.getString("county_desc"),
-                                        row.getString("last_name"),
-                                        row.getString("first_name"),
-                                        row.getString("midl_name"),
-                                        row.getString("house_num"),
-                                        row.getString("street_dir"),
-                                        row.getString("street_name"),
-                                        row.getString("res_city_desc"),
-                                        row.getString("state_cd"),
-                                        row.getString("zip_code"),
-                                        row.getString("area_cd"),
-                                        row.getString("phone_num"),
-                                        row.getString("race_code"),
-                                        row.getString("race_desc"),
-                                        row.getString("ethnic_code"),
-                                        row.getString("ethnic_desc"),
-                                        row.getString("party_cd"),
-                                        row.getString("party_desc"),
-                                        row.getString("sex_code"),
-                                        row.getString("sex"),
-                                        row.getString("age"),
-                                        row.getString("age_group"),
-                                        row.getString("name_prefx_cd"),
-                                        row.getString("name_sufx_cd"),
-                                        row.getString("half_code"),
-                                        row.getString("street_type_cd"),
-                                        row.getString("street_sufx_cd"),
-                                        row.getString("unit_designator"),
-                                        row.getString("unit_num"),
-                                        row.getString("mail_addr1"),
-                                        row.getString("mail_addr2"),
-                                        row.getString("mail_addr3"),
-                                        row.getString("mail_addr4"),
-                                        row.getString("mail_city"),
-                                        row.getString("mail_state"),
-                                        row.getString("mail_zipcode")
-                                );
-                                obj.addCheckPointList(checkpoint);
                             }
                         }
+                        long p1e = System.nanoTime();
+                        m3 = "Processing: " + (p1e-p1) + "ns";
+
                         // Time-out the process to simulate more realistic calculation pattern. This should account
                         // for the fact that histories of different size take a different amount of time to process.
-                        TimeUnit.MILLISECONDS.sleep(Math.round(obj.getUpdates()*Float.parseFloat(this.processingTime)));
+                        long timeout = Math.round(obj.getUpdateList().size()*Float.parseFloat(this.processingTime));
+                        m4 = "Timeout: " + timeout;
+                        m5 = "Updates: " + obj.getUpdateList().size();
+                        TimeUnit.MILLISECONDS.sleep(timeout);
                     }
                 }
             }
             cluster.close();
             long endTime3 = System.nanoTime();
             long timeElapsed3 = endTime3 - startTime3;
-            System.out.println("Finished processing Batch. Stats(Prepare Batch: " + timeElapsed / 1000000 + "ms, Processed batch in: " + timeElapsed3 / 1000000 + "ms, DB connection time: " + timeElapsed2 / 1000000 + "ms.)");
+            System.out.println("Complete: " + timeElapsed3 / 1000000 + "ms - " + m1 + " - " + m2 + " - " + m3 + " - " + m4 + " - " + m5);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName()+": "+e.getMessage());
