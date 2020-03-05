@@ -9,6 +9,8 @@ import org.apache.flink.core.io.InputSplitAssigner;
 
 import java.io.*;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -107,111 +109,123 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
     @Override
     public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
+        String m1 = "";
+        String m2 = "";
+        String m3 = "";
+        String m4 = "";
+        String m5 = "";
         this.sheetInputSplit1 = sheetInputSplit1;
-        long startTime1 = System.nanoTime();
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
-        long endTime1 = System.nanoTime();
-        long timeElapsed = endTime1 - startTime1;
-        Connection c = null;
-        Statement stmt = null;
         try {
             long startTime2 = System.nanoTime();
             Class.forName("org.postgresql.Driver");
+            Connection c = null;
+            Statement stmt = null;
             c = DriverManager
-                    .getConnection("jdbc:postgresql://localhost:5433/history-1000000",
-                            "postgres", "");
+                    .getConnection("jdbc:postgresql://localhost:5432/postgres",
+                            "postgres", "postgres");
             long endTime2 = System.nanoTime();
-            long timeElapsed2 = endTime2 - startTime2;
+            m1 = "Connection: " + (endTime2 - startTime2) + "ns";
 
             long startTime3 = System.nanoTime();
-            if(ncidBatch.length > 0) {
-                for (String ncid: ncidBatch) {
+            if (ncidBatch.length > 0) {
+                for (String ncid : ncidBatch) {
+                    long p1 = System.nanoTime();
+                    long q1 = System.nanoTime();
                     stmt = c.createStatement();
                     // History Object
                     HistoryObjects obj = new HistoryObjects();
                     String sqlObject = "Select * from public.objects WHERE nc_id = '" + ncid + "';";
                     ResultSet rs = stmt.executeQuery(sqlObject);
                     while (rs.next()) {
-                        obj.setNcid(rs.getString(1));
-                        obj.setUpdates(rs.getInt(2));
-                        obj.setUpdateGroups(rs.getInt(3));
-                        obj.setCheckpoints(rs.getInt(4));
+                        obj.setNcid(rs.getString("nc_id"));
+                        obj.setUpdates(rs.getInt("updates"));
+                        obj.setUpdateGroups(rs.getInt("update_groups"));
+                        obj.setCheckpoints(rs.getInt("checkpoints"));
                         obj.setCheckpointList(new ArrayList<>());
                         obj.setUpdateList(new ArrayList<>());
-                    }
-                    String sqlCheckpoints = "Select * from public.checkpoints WHERE nc_id = '" + ncid + "' AND last_update IS NULL;";
-                    rs = stmt.executeQuery(sqlCheckpoints);
-                    while (rs.next()) {
-                        Checkpoint checkpoint = new Checkpoint(
-                                rs.getString(2),
-                                rs.getInt(1),
-                                rs.getInt(3),
-                                rs.getTimestamp(4).toLocalDateTime(),
-                                rs.getString(5),
-                                rs.getString(6),
-                                rs.getString(7),
-                                rs.getString(8),
-                                rs.getString(9),
-                                rs.getString(10),
-                                rs.getString(11),
-                                rs.getString(12),
-                                rs.getString(13),
-                                rs.getString(14),
-                                rs.getString(15),
-                                rs.getString(16),
-                                rs.getString(17),
-                                rs.getString(18),
-                                rs.getString(19),
-                                rs.getString(20),
-                                rs.getString(21),
-                                rs.getString(22),
-                                rs.getString(23),
-                                rs.getString(24),
-                                rs.getString(25),
-                                rs.getString(26),
-                                rs.getString(27),
-                                rs.getString(28),
-                                rs.getString(29),
-                                rs.getString(30),
-                                rs.getString(31),
-                                rs.getString(32),
-                                rs.getString(33),
-                                rs.getString(34),
-                                rs.getString(35),
-                                rs.getString(36),
-                                rs.getString(37),
-                                rs.getString(38),
-                                rs.getString(39),
-                                rs.getString(40),
-                                rs.getString(41));
-                        obj.addCheckPointList(checkpoint);
                     }
                     String sqlUpdates = "Select * from public.updates WHERE nc_id = '" + ncid + "';";
                     rs = stmt.executeQuery(sqlUpdates);
                     while (rs.next()) {
                         Update update = new Update(
-                                rs.getString(3),
-                                rs.getInt(1),
-                                rs.getInt(2),
-                                rs.getTimestamp(4).toLocalDateTime(),
-                                rs.getString(5),
-                                rs.getString(6)
+                                rs.getString("nc_id"),
+                                rs.getInt("update_id"),
+                                rs.getInt("update_group"),
+                                rs.getTimestamp("timestamp").toLocalDateTime(),
+                                rs.getString("attribute"),
+                                rs.getString("value")
                         );
                         obj.addUpdateList(update);
                     }
+                    String sqlCheckpoints = "Select * from public.checkpoints WHERE nc_id = '" + ncid + "' AND last_update IS NULL;";
+                    rs = stmt.executeQuery(sqlCheckpoints);
+                    while (rs.next()) {
+                        Checkpoint checkpoint = new Checkpoint(
+                                rs.getString("nc_id"),
+                                rs.getInt("checkpoint_id"),
+                                rs.getInt("last_update"),
+                                rs.getTimestamp("timestamp").toLocalDateTime(),
+                                rs.getString("county_id"),
+                                rs.getString("county_desc"),
+                                rs.getString("last_name"),
+                                rs.getString("first_name"),
+                                rs.getString("midl_name"),
+                                rs.getString("house_num"),
+                                rs.getString("street_dir"),
+                                rs.getString("street_name"),
+                                rs.getString("res_city_desc"),
+                                rs.getString("state_cd"),
+                                rs.getString("zip_code"),
+                                rs.getString("area_cd"),
+                                rs.getString("phone_num"),
+                                rs.getString("race_code"),
+                                rs.getString("race_desc"),
+                                rs.getString("ethnic_code"),
+                                rs.getString("ethnic_desc"),
+                                rs.getString("party_cd"),
+                                rs.getString("party_desc"),
+                                rs.getString("sex_code"),
+                                rs.getString("sex"),
+                                rs.getString("age"),
+                                rs.getString("birth_place"),
+                                rs.getString("age_group"),
+                                rs.getString("name_prefx_cd"),
+                                rs.getString("name_sufx_cd"),
+                                rs.getString("half_code"),
+                                rs.getString("street_type_cd"),
+                                rs.getString("street_sufx_cd"),
+                                rs.getString("unit_designator"),
+                                rs.getString("unit_num"),
+                                rs.getString("mail_addr1"),
+                                rs.getString("mail_addr2"),
+                                rs.getString("mail_addr3"),
+                                rs.getString("mail_addr4"),
+                                rs.getString("mail_city"),
+                                rs.getString("mail_state"));
+                        obj.addCheckPointList(checkpoint);
+                    }
+                    long q1e = System.nanoTime();
+                    m2 = "Query: " + (q1e - q1) + "ns";
+
+                    long p1e = System.nanoTime();
+                    m3 = "Processing: " + (p1e - p1) + "ns";
+
                     // Time-out the process to simulate more realistic calculation pattern. This should account
                     // for the fact that histories of different size take a different amount of time to process.
-                    TimeUnit.MILLISECONDS.sleep(Math.round(obj.getUpdates()*Float.parseFloat(this.processingTime)));
-                    stmt.close();
+                    long timeout = Math.round(obj.getUpdateList().size() * Float.parseFloat(this.processingTime));
+                    m4 = "Timeout: " + timeout;
+                    m5 = "Updates: " + obj.getUpdateList().size();
+                    TimeUnit.MILLISECONDS.sleep(timeout);
                 }
             }
+            c.close();
             long endTime3 = System.nanoTime();
             long timeElapsed3 = endTime3 - startTime3;
-            System.out.println("Finished processing Batch. Stats(Prepare Batch: " + timeElapsed / 1000000 + "ms, Processed batch in: " + timeElapsed3 / 1000000 + "ms, DB connection time: " + timeElapsed2 / 1000000 + "ms.)");
-            c.close();
+            System.out.println("Complete: " + timeElapsed3 / 1000000 + "ms - " + m1 + " - " + m2 + " - " + m3 + " - " + m4 + " - " + m5);
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println(e.getClass().getName()+": "+e.getMessage());
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
             System.exit(0);
         }
     }
