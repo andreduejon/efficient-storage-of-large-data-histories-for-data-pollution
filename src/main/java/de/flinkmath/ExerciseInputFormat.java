@@ -8,10 +8,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -19,18 +17,60 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInputSplit1> {
+    public static final ConfigOption<String> CONFIG_OUTDATED_FREQUENCY = ConfigOptions.key("de.flinkmath.outdatedfrequency").defaultValue("10");
     public static final ConfigOption<String> CONFIG_FILE_NAME_OPTION = ConfigOptions.key("de.flinkmath.filename").defaultValue("");
     public static final ConfigOption<String> CONFIG_PROCESSING_TIME = ConfigOptions.key("de.flinkmath.processingtime").defaultValue("1");
 
     private String configFileName;
+    private String outdatedFrequency;
     private String processingTime;
     private Iterator<HistoryObjects> historyIterator;
     private SheetInputSplit1 sheetInputSplit1;
+    private String[] dates = {
+            "2008-11-04", "2008-11-04", "2008-11-04", "2008-11-04",
+            "2009-01-01", "2009-01-01", "2009-01-01", "2009-01-01",
+            "2014-01-01", "2014-01-01", "2014-01-01",
+            "2014-05-06", "2014-05-06", "2014-05-06",
+            "2016-01-01", "2016-01-01",
+            "2016-03-15", "2016-03-15",
+            "2019-04-30",
+            "2019-01-01",
+            "2011-01-01", "2011-01-01", "2011-01-01", "2011-01-01",
+            "2010-01-01", "2010-01-01", "2010-01-01", "2010-01-01",
+            "2014-07-15", "2014-07-15", "2014-07-15",
+            "2014-11-04", "2014-11-04", "2014-11-04",
+            "2017-09-12", "2017-09-12",
+            "2017-10-10", "2017-10-10",
+            "2018-01-01",
+            "2012-07-17", "2012-07-17", "2012-07-17", "2012-07-17",
+            "2012-11-06", "2012-11-06", "2012-11-06", "2012-11-06",
+            "2013-01-01", "2013-01-01", "2013-01-01", "2013-01-01",
+            "2015-01-01", "2015-01-01", "2015-01-01",
+            "2015-09-15", "2015-09-15", "2015-09-15",
+            "2015-10-06", "2015-10-06", "2015-10-06",
+            "2015-11-03", "2015-11-03", "2015-11-03",
+            "2018-05-08",
+            "2018-11-06",
+            "2012-01-01", "2012-01-01", "2012-01-01", "2012-01-01",
+            "2012-05-08", "2012-05-08", "2012-05-08", "2012-05-08",
+            "2016-06-07", "2016-06-07",
+            "2016-11-08", "2016-11-08",
+            "2017-01-01", "2017-01-01",
+            "2017-11-07"
+    };
+    private String[] attributes = {
+            "house_num", "street_name", "zip_code", "phone_num", "age_group",
+            "county_desc", "last_name", "res_city_desc", "ethnic_desc", "party_desc",
+            "house_num", "street_name", "zip_code", "phone_num", "age_group",
+            "house_num", "street_name", "zip_code", "phone_num", "age_group",
+            "county_desc", "last_name", "res_city_desc", "ethnic_desc", "party_desc"
+    };
 
     @Override
     public void configure(Configuration configuration) {
         this.configFileName = configuration.getString(CONFIG_FILE_NAME_OPTION);
         this.processingTime = configuration.getString(CONFIG_PROCESSING_TIME);
+        this.outdatedFrequency = configuration.getString(CONFIG_OUTDATED_FREQUENCY);
         log("Received config file name " + this.configFileName + " and set processing time per update to " + this.processingTime + "ms.");
     }
 
@@ -109,62 +149,30 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
     @Override
     public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
-        String m1 = "";
-        String m2 = "";
-        String m3 = "";
-        String m4 = "";
-        String m5 = "";
         this.sheetInputSplit1 = sheetInputSplit1;
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
         try {
-            long startTime2 = System.nanoTime();
             Class.forName("org.postgresql.Driver");
             Connection c = null;
             Statement stmt = null;
             c = DriverManager
-                    .getConnection("jdbc:postgresql://localhost:5432/postgres",
-                            "postgres", "postgres");
-            long endTime2 = System.nanoTime();
-            m1 = "Connection: " + (endTime2 - startTime2) + "ns";
-
-            long startTime3 = System.nanoTime();
+                    .getConnection("jdbc:postgresql://localhost:5433/history-1000000",
+                            "postgres", "");
             if (ncidBatch.length > 0) {
+                // Variables to store a value which detemrines the starting point in tghe attributes and dates array.
+                int startAtAttribute = 0;
+                int startAtDate = 0;
+
+                // Iterate over all ncids in batch
                 for (String ncid : ncidBatch) {
-                    long p1 = System.nanoTime();
-                    long q1 = System.nanoTime();
+                    ReplacementEntry initialEntry = null;
                     stmt = c.createStatement();
-                    // History Object
-                    HistoryObjects obj = new HistoryObjects();
-                    String sqlObject = "Select * from public.objects WHERE nc_id = '" + ncid + "';";
-                    ResultSet rs = stmt.executeQuery(sqlObject);
+                    String sql = "SELECT * FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '2020-01-01' ORDER BY timestamp DESC LIMIT 1;";
+                    ResultSet rs = stmt.executeQuery(sql);
                     while (rs.next()) {
-                        obj.setNcid(rs.getString("nc_id"));
-                        obj.setUpdates(rs.getInt("updates"));
-                        obj.setUpdateGroups(rs.getInt("update_groups"));
-                        obj.setCheckpoints(rs.getInt("checkpoints"));
-                        obj.setCheckpointList(new ArrayList<>());
-                        obj.setUpdateList(new ArrayList<>());
-                    }
-                    String sqlUpdates = "Select * from public.updates WHERE nc_id = '" + ncid + "';";
-                    rs = stmt.executeQuery(sqlUpdates);
-                    while (rs.next()) {
-                        Update update = new Update(
+                        initialEntry = new ReplacementEntry(
+                                rs.getInt("id"),
                                 rs.getString("nc_id"),
-                                rs.getInt("update_id"),
-                                rs.getInt("update_group"),
-                                rs.getTimestamp("timestamp").toLocalDateTime(),
-                                rs.getString("attribute"),
-                                rs.getString("value")
-                        );
-                        obj.addUpdateList(update);
-                    }
-                    String sqlCheckpoints = "Select * from public.checkpoints WHERE nc_id = '" + ncid + "' AND last_update IS NULL;";
-                    rs = stmt.executeQuery(sqlCheckpoints);
-                    while (rs.next()) {
-                        Checkpoint checkpoint = new Checkpoint(
-                                rs.getString("nc_id"),
-                                rs.getInt("checkpoint_id"),
-                                rs.getInt("last_update"),
                                 rs.getTimestamp("timestamp").toLocalDateTime(),
                                 rs.getString("county_id"),
                                 rs.getString("county_desc"),
@@ -203,26 +211,45 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                                 rs.getString("mail_addr4"),
                                 rs.getString("mail_city"),
                                 rs.getString("mail_state"));
-                        obj.addCheckPointList(checkpoint);
                     }
-                    long q1e = System.nanoTime();
-                    m2 = "Query: " + (q1e - q1) + "ns";
+                    System.out.println(initialEntry.toString());
+                    for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
+                        String date = dates[startAtDate];
+                        String attribute = attributes[startAtAttribute];
+                        System.out.println(date);
+                        System.out.println(attribute);
+                        sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
+                        rs = stmt.executeQuery(sql);
+                        if(rs.getFetchSize()==0) {
+                            System.out.println(rs.getFetchSize());
+                            sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp >= '"+ date +"' ORDER BY timestamp ASC LIMIT 1;";
+                            rs = stmt.executeQuery(sql);
+                        }
+                        while(rs.next()) {
+                            Field field = ReplacementEntry.class.getField(attribute);
+                            field.set(initialEntry, rs.getString(1));
+                            System.out.println(rs.getString(1));
+                        }
+                    }
+                    System.out.println(initialEntry.toString());
+                    if(startAtAttribute < attributes.length) {
+                        startAtAttribute++;
+                    } else {
+                        startAtAttribute = 0;
+                    }
+                    if(startAtDate < dates.length) {
+                        startAtAttribute++;
+                    } else {
+                        startAtDate = 0;
+                    }
 
-                    long p1e = System.nanoTime();
-                    m3 = "Processing: " + (p1e - p1) + "ns";
-
-                    // Time-out the process to simulate more realistic calculation pattern. This should account
+                    // Time-out the process to inject further errors in addition to outdated values. This should account
                     // for the fact that histories of different size take a different amount of time to process.
-                    long timeout = Math.round(obj.getUpdateList().size() * Float.parseFloat(this.processingTime));
-                    m4 = "Timeout: " + timeout;
-                    m5 = "Updates: " + obj.getUpdateList().size();
+                    long timeout = (Integer.parseInt(this.outdatedFrequency) * Integer.parseInt(this.processingTime));
                     TimeUnit.MILLISECONDS.sleep(timeout);
                 }
             }
             c.close();
-            long endTime3 = System.nanoTime();
-            long timeElapsed3 = endTime3 - startTime3;
-            System.out.println("Complete: " + timeElapsed3 / 1000000 + "ms - " + m1 + " - " + m2 + " - " + m3 + " - " + m4 + " - " + m5);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName() + ": " + e.getMessage());

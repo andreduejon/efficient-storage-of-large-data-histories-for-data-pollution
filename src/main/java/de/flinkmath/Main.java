@@ -8,6 +8,9 @@ public class Main {
     public static void main(String[] args) throws Exception {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         Configuration inputConf = new Configuration();
+        if(args[4].equals("-o")) {
+            inputConf.setString(ExerciseInputFormat.CONFIG_OUTDATED_FREQUENCY, args[5]);
+        }
         if(args[2].equals("-u")) {
             inputConf.setString(ExerciseInputFormat.CONFIG_PROCESSING_TIME, args[3]);
         }
