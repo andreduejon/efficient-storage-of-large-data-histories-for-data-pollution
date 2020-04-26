@@ -212,12 +212,14 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                                 rs.getString("mail_city"),
                                 rs.getString("mail_state"));
                     }
-                    System.out.println(initialEntry.toString());
                     for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
                         String date = dates[startAtDate];
                         String attribute = attributes[startAtAttribute];
-                        System.out.println(date);
-                        System.out.println(attribute);
+                        Field preField = ReplacementEntry.class.getField(attribute);
+                        String preValue = (String) preField.get(initialEntry);
+                        System.out.println(rs.getString(1));
+                        System.out.println("Date: " + date + "Attribute: " + attribute);
+                        System.out.println("Field: " + preValue);
                         sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
                         rs = stmt.executeQuery(sql);
                         if(rs.getFetchSize()==0) {
@@ -230,17 +232,16 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                             field.set(initialEntry, rs.getString(1));
                             System.out.println(rs.getString(1));
                         }
-                    }
-                    System.out.println(initialEntry.toString());
-                    if(startAtAttribute < attributes.length) {
-                        startAtAttribute++;
-                    } else {
-                        startAtAttribute = 0;
-                    }
-                    if(startAtDate < dates.length) {
-                        startAtAttribute++;
-                    } else {
-                        startAtDate = 0;
+                        if(startAtAttribute < attributes.length) {
+                            startAtAttribute++;
+                        } else {
+                            startAtAttribute = 0;
+                        }
+                        if(startAtDate < dates.length) {
+                            startAtDate++;
+                        } else {
+                            startAtDate = 0;
+                        }
                     }
 
                     // Time-out the process to inject further errors in addition to outdated values. This should account
