@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -200,10 +201,16 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                         );
                         obj.addUpdateList(update);
                     }
+
+                    // Time-out the process to simulate more realistic calculation pattern. This should account
+                    // for the fact that histories of different size take a different amount of time to process.
+                    long timeout = Math.round(obj.getUpdateList().size() * Float.parseFloat(this.processingTime));
+                    TimeUnit.MILLISECONDS.sleep(updates.size());
                 }
             }
             long endTime3 = System.nanoTime();
             long timeElapsed3 = endTime3 - startTime3;
+            mongoClient.close();
             System.out.println("Finished processing Batch. Stats(Prepare Batch: " + timeElapsed / 1000000 + "ms, Processed batch in: " + timeElapsed3 / 1000000 + "ms, DB connection time: " + timeElapsed2 / 1000000 + "ms.)");
         } catch (Exception e) {
             e.printStackTrace();
