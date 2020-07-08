@@ -1,15 +1,22 @@
 package de.flinkmath;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
+import org.bson.Document;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -154,7 +161,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
             MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
 
             MongoDatabase database = mongoClient.getDatabase("history");
-            MongoCollection<Document> collection = database.getCollection("data");
+            MongoCollection<Document> collection = database.getCollection("data-replacement");
 
             if (ncidBatch.length > 0) {
                 // Variables to store a value which detemrines the starting point in tghe attributes and dates array.
@@ -163,54 +170,58 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
                 // Iterate over all ncids in batch
                 for (String ncid : ncidBatch) {
+                    Document myDoc = collection.find(eq("_id", ncid)).first();
+
                     ReplacementEntry initialEntry = null;
-                    stmt = c.createStatement();
-                    String sql = "SELECT * FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '2020-01-01' ORDER BY timestamp DESC LIMIT 1;";
-                    ResultSet rs = stmt.executeQuery(sql);
-                    while (rs.next()) {
+                    List<Document> entries = (List<Document>) myDoc.get("data-history");
+
+                    if(!entries.isEmpty()) {
+                        Document mostRecent = entries.get(0);
                         initialEntry = new ReplacementEntry(
-                                rs.getInt("id"),
-                                rs.getString("nc_id"),
-                                rs.getTimestamp("timestamp").toLocalDateTime(),
-                                rs.getString("county_id"),
-                                rs.getString("county_desc"),
-                                rs.getString("last_name"),
-                                rs.getString("first_name"),
-                                rs.getString("midl_name"),
-                                rs.getString("house_num"),
-                                rs.getString("street_dir"),
-                                rs.getString("street_name"),
-                                rs.getString("res_city_desc"),
-                                rs.getString("state_cd"),
-                                rs.getString("zip_code"),
-                                rs.getString("area_cd"),
-                                rs.getString("phone_num"),
-                                rs.getString("race_code"),
-                                rs.getString("race_desc"),
-                                rs.getString("ethnic_code"),
-                                rs.getString("ethnic_desc"),
-                                rs.getString("party_cd"),
-                                rs.getString("party_desc"),
-                                rs.getString("sex_code"),
-                                rs.getString("sex"),
-                                rs.getString("age"),
-                                rs.getString("birth_place"),
-                                rs.getString("age_group"),
-                                rs.getString("name_prefx_cd"),
-                                rs.getString("name_sufx_cd"),
-                                rs.getString("half_code"),
-                                rs.getString("street_type_cd"),
-                                rs.getString("street_sufx_cd"),
-                                rs.getString("unit_designator"),
-                                rs.getString("unit_num"),
-                                rs.getString("mail_addr1"),
-                                rs.getString("mail_addr2"),
-                                rs.getString("mail_addr3"),
-                                rs.getString("mail_addr4"),
-                                rs.getString("mail_city"),
-                                rs.getString("mail_state"),
-                                rs.getString("mail_zipcode"));
+                                mostRecent.getInteger("id"),
+                                ncid,
+                                LocalDateTime.ofInstant(mostRecent.getDate("timestamp").toInstant(), ZoneId.systemDefault()),
+                                mostRecent.getString("county_id"),
+                                mostRecent.getString("county_desc"),
+                                mostRecent.getString("last_name"),
+                                mostRecent.getString("first_name"),
+                                mostRecent.getString("midl_name"),
+                                mostRecent.getString("house_num"),
+                                mostRecent.getString("street_dir"),
+                                mostRecent.getString("street_name"),
+                                mostRecent.getString("res_city_desc"),
+                                mostRecent.getString("state_cd"),
+                                mostRecent.getString("zip_code"),
+                                mostRecent.getString("area_cd"),
+                                mostRecent.getString("phone_num"),
+                                mostRecent.getString("race_code"),
+                                mostRecent.getString("race_desc"),
+                                mostRecent.getString("ethnic_code"),
+                                mostRecent.getString("ethnic_desc"),
+                                mostRecent.getString("party_cd"),
+                                mostRecent.getString("party_desc"),
+                                mostRecent.getString("sex_code"),
+                                mostRecent.getString("sex"),
+                                mostRecent.getString("age"),
+                                mostRecent.getString("birth_place"),
+                                mostRecent.getString("age_group"),
+                                mostRecent.getString("name_prefx_cd"),
+                                mostRecent.getString("name_sufx_cd"),
+                                mostRecent.getString("half_code"),
+                                mostRecent.getString("street_type_cd"),
+                                mostRecent.getString("street_sufx_cd"),
+                                mostRecent.getString("unit_designator"),
+                                mostRecent.getString("unit_num"),
+                                mostRecent.getString("mail_addr1"),
+                                mostRecent.getString("mail_addr2"),
+                                mostRecent.getString("mail_addr3"),
+                                mostRecent.getString("mail_addr4"),
+                                mostRecent.getString("mail_city"),
+                                mostRecent.getString("mail_state"),
+                                mostRecent.getString("mail_zipcode")
+                        );
                     }
+
                     if(initialEntry != null) {
                         for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
                             String date = dates[startAtDate];
@@ -309,14 +320,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
         if(ncidBatch.length > 0) {
         for (String ncid: ncidBatch) {
         Document myDoc = collection.find(eq("_id", ncid)).first();
-        HistoryObjects obj = new HistoryObjects();
 
-        obj.setNcid(ncid);
-        obj.setUpdates(myDoc.getInteger("update-count"));
-        obj.setCheckpoints(myDoc.getInteger("checkpoint-count"));
-        obj.setUpdateGroups(myDoc.getInteger("update-group-count"));
-        obj.setCheckpointList(new ArrayList<>());
-        obj.setUpdateList(new ArrayList<>());
 
         List<Document> checkpoints = (List<Document>) myDoc.get("checkpoints");
         Document initialCheckpointDoc = checkpoints.get(0);
