@@ -11,10 +11,10 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
 import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Iterator;
@@ -171,7 +171,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                 // Iterate over all ncids in batch
                 for (String ncid : ncidBatch) {
                     Document myDoc = collection.find(eq("_id", ncid)).first();
-
                     ReplacementEntry initialEntry = null;
                     List<Document> entries = (List<Document>) myDoc.get("data-history");
 
