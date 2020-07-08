@@ -28,6 +28,7 @@ public class ReplacementEntry {
     public String sex_code;
     public String sex;
     public String age;
+    public String birth_place;
     public String age_group;
     public String name_prefix;
     public String name_suffix;
@@ -44,7 +45,7 @@ public class ReplacementEntry {
     public String mail_state;
     public String mail_zipcode;
 
-    public ReplacementEntry(int id, String nc_id, LocalDateTime timestamp, String county_id, String county_desc, String last_name, String first_name, String midl_name, String house_num, String street_dir, String street_name, String res_city_desc, String state_cd, String zip_code, String area_cd, String phone_num, String race_cd, String race_desc, String ethnic_cd, String ethnic_desc, String party_cd, String party_desc, String sex_code, String sex, String age, String age_group, String name_prefix, String name_suffix, String half_code, String street_type, String street_suffix, String unit_designator, String unit_num, String mail_addr1, String mail_addr2, String mail_addr3, String mail_addr4, String mail_city, String mail_state, String mail_zipcode) {
+    public ReplacementEntry(int id, String nc_id, LocalDateTime timestamp, String county_id, String county_desc, String last_name, String first_name, String midl_name, String house_num, String street_dir, String street_name, String res_city_desc, String state_cd, String zip_code, String area_cd, String phone_num, String race_cd, String race_desc, String ethnic_cd, String ethnic_desc, String party_cd, String party_desc, String sex_code, String sex, String age, String birth_place, String age_group, String name_prefix, String name_suffix, String half_code, String street_type, String street_suffix, String unit_designator, String unit_num, String mail_addr1, String mail_addr2, String mail_addr3, String mail_addr4, String mail_city, String mail_state, String mail_zipcode) {
         this.id = id;
         this.nc_id = nc_id;
         this.timestamp = timestamp;
@@ -70,6 +71,7 @@ public class ReplacementEntry {
         this.sex_code = sex_code;
         this.sex = sex;
         this.age = age;
+        this.birth_place = birth_place;
         this.age_group = age_group;
         this.name_prefix = name_prefix;
         this.name_suffix = name_suffix;
@@ -271,6 +273,13 @@ public class ReplacementEntry {
 
     public String getRace_desc() {
         return race_desc;
+    }
+
+    public String getBirth_place() {
+        return birth_place;
+    }
+    public void setBirth_place(String birth_place) {
+        this.birth_place = birth_place;
     }
 
     public void setRace_desc(String race_desc) {

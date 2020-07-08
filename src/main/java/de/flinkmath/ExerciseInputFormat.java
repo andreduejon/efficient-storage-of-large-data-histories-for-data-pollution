@@ -27,36 +27,35 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     private Iterator<HistoryObjects> historyIterator;
     private SheetInputSplit1 sheetInputSplit1;
     private String[] dates = {
-            "2008-11-04", "2008-11-04", "2008-11-04", "2008-11-04",
-            "2009-01-01", "2009-01-01", "2009-01-01", "2009-01-01",
-            "2014-01-01", "2014-01-01", "2014-01-01",
-            "2014-05-06", "2014-05-06", "2014-05-06",
-            "2016-01-01", "2016-01-01",
-            "2016-03-15", "2016-03-15",
-            "2019-04-30",
-            "2019-01-01",
-            "2011-01-01", "2011-01-01", "2011-01-01", "2011-01-01",
-            "2010-01-01", "2010-01-01", "2010-01-01", "2010-01-01",
-            "2014-07-15", "2014-07-15", "2014-07-15",
-            "2014-11-04", "2014-11-04", "2014-11-04",
-            "2017-09-12", "2017-09-12",
-            "2017-10-10", "2017-10-10",
-            "2018-01-01",
-            "2012-07-17", "2012-07-17", "2012-07-17", "2012-07-17",
-            "2012-11-06", "2012-11-06", "2012-11-06", "2012-11-06",
-            "2013-01-01", "2013-01-01", "2013-01-01", "2013-01-01",
+            "2008-11-04",
+            "2009-01-01",
+            "2014-01-01", "2014-01-01",
+            "2014-05-06", "2014-05-06",
+            "2016-01-01", "2016-01-01", "2016-01-01",
+            "2016-03-15", "2016-03-15", "2016-03-15",
+            "2019-01-01", "2019-01-01", "2019-01-01", "2019-01-01",
+            "2011-01-01",
+            "2010-01-01",
+            "2014-07-15", "2014-07-15",
+            "2014-11-04", "2014-11-04",
+            "2017-09-12", "2017-09-12", "2017-09-12", "2017-09-12",
+            "2017-10-10", "2017-10-10", "2017-10-10", "2017-10-10",
+            "2018-01-01", "2018-01-01", "2018-01-01", "2018-01-01",
+            "2012-07-17", "2012-07-17",
+            "2012-11-06", "2012-11-06",
+            "2013-01-01", "2013-01-01",
             "2015-01-01", "2015-01-01", "2015-01-01",
             "2015-09-15", "2015-09-15", "2015-09-15",
             "2015-10-06", "2015-10-06", "2015-10-06",
             "2015-11-03", "2015-11-03", "2015-11-03",
-            "2018-05-08",
-            "2018-11-06",
-            "2012-01-01", "2012-01-01", "2012-01-01", "2012-01-01",
-            "2012-05-08", "2012-05-08", "2012-05-08", "2012-05-08",
-            "2016-06-07", "2016-06-07",
-            "2016-11-08", "2016-11-08",
-            "2017-01-01", "2017-01-01",
-            "2017-11-07"
+            "2018-05-08", "2018-05-08", "2018-05-08", "2018-05-08",
+            "2018-11-06", "2018-11-06", "2018-11-06", "2018-11-06",
+            "2012-01-01",
+            "2012-05-08",
+            "2016-06-07", "2016-06-07", "2016-06-07",
+            "2016-11-08", "2016-11-08", "2016-11-08",
+            "2017-01-01", "2017-01-01", "2017-01-01", "2017-01-01",
+            "2017-11-07", "2017-11-07", "2017-11-07", "2017-11-07"
     };
     private String[] attributes = {
             "house_num", "street_name", "zip_code", "phone_num", "age_group",
@@ -156,8 +155,8 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
             Connection c = null;
             Statement stmt = null;
             c = DriverManager
-                    .getConnection("jdbc:postgresql://localhost:5433/history-1000000",
-                            "postgres", "");
+                    .getConnection("jdbc:postgresql://localhost:5432/postgres",
+                            "postgres", "postgres");
             if (ncidBatch.length > 0) {
                 // Variables to store a value which detemrines the starting point in tghe attributes and dates array.
                 int startAtAttribute = 0;
@@ -210,37 +209,44 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                                 rs.getString("mail_addr3"),
                                 rs.getString("mail_addr4"),
                                 rs.getString("mail_city"),
-                                rs.getString("mail_state"));
+                                rs.getString("mail_state"),
+                                rs.getString("mail_zipcode"));
                     }
-                    for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
-                        String date = dates[startAtDate];
-                        String attribute = attributes[startAtAttribute];
-                        Field preField = ReplacementEntry.class.getField(attribute);
-                        String preValue = (String) preField.get(initialEntry);
-                        System.out.println(rs.getString(1));
-                        System.out.println("Date: " + date + "Attribute: " + attribute);
-                        System.out.println("Field: " + preValue);
-                        sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
-                        rs = stmt.executeQuery(sql);
-                        if(rs.getFetchSize()==0) {
-                            System.out.println(rs.getFetchSize());
-                            sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp >= '"+ date +"' ORDER BY timestamp ASC LIMIT 1;";
+                    if(initialEntry != null) {
+                        for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
+                            String date = dates[startAtDate];
+                            String attribute = attributes[startAtAttribute];
+                            Field preField = ReplacementEntry.class.getField(attribute);
+                            String preValue = (String) preField.get(initialEntry);
+
+                            sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
                             rs = stmt.executeQuery(sql);
-                        }
-                        while(rs.next()) {
-                            Field field = ReplacementEntry.class.getField(attribute);
-                            field.set(initialEntry, rs.getString(1));
-                            System.out.println(rs.getString(1));
-                        }
-                        if(startAtAttribute < attributes.length) {
-                            startAtAttribute++;
-                        } else {
-                            startAtAttribute = 0;
-                        }
-                        if(startAtDate < dates.length) {
-                            startAtDate++;
-                        } else {
-                            startAtDate = 0;
+                            if(!rs.isBeforeFirst()) {
+                                sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp >= '"+ date +"' ORDER BY timestamp ASC LIMIT 1;";
+                                rs = stmt.executeQuery(sql);
+                            }
+
+                            String newValue = null;
+                            while(rs.next()) {
+                                Field field = ReplacementEntry.class.getField(attribute);
+                                field.set(initialEntry, rs.getString(1));
+                                newValue = rs.getString(1);
+                            }
+                            if(preValue != null && !preValue.equals(newValue)){
+                                System.out.println("#" + (i+1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue  + "---New: " + newValue);
+                                //System.out.println("#" + (i+1) + "---SQL: " + sql);
+                            }
+
+                            if(startAtAttribute < attributes.length -1) {
+                                startAtAttribute++;
+                            } else {
+                                startAtAttribute = 0;
+                            }
+                            if(startAtDate < dates.length -1) {
+                                startAtDate++;
+                            } else {
+                                startAtDate = 0;
+                            }
                         }
                     }
 
