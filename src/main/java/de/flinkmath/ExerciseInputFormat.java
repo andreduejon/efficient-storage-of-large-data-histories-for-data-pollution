@@ -30,7 +30,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
     private String configFileName;
     private String processingTime;
-    private Iterator<HistoryObjects> historyIterator;
     private SheetInputSplit1 sheetInputSplit1;
 
     @Override
@@ -41,7 +40,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public BaseStatistics getStatistics(BaseStatistics baseStatistics) throws IOException {
+    public BaseStatistics getStatistics(BaseStatistics baseStatistics) {
         // not available
         return null;
     }
@@ -114,7 +113,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
+    public void open(SheetInputSplit1 sheetInputSplit1) {
         this.sheetInputSplit1 = sheetInputSplit1;
         long startTime1 = System.nanoTime();
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
