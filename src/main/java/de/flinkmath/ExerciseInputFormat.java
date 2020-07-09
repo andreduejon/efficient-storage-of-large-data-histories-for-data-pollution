@@ -1,9 +1,6 @@
 package de.flinkmath;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.*;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.configuration.ConfigOption;
@@ -15,8 +12,11 @@ import static com.mongodb.client.model.Filters.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -164,7 +164,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
             MongoCollection<Document> collection = database.getCollection("data-replacement");
 
             if (ncidBatch.length > 0) {
-                // Variables to store a value which detemrines the starting point in tghe attributes and dates array.
+                // Variables to store a value which determines the starting point in the attributes and dates array.
                 int startAtAttribute = 0;
                 int startAtDate = 0;
 
@@ -172,10 +172,13 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                 for (String ncid : ncidBatch) {
                     Document myDoc = collection.find(eq("_id", ncid)).first();
                     ReplacementEntry initialEntry = null;
-                    List<Document> entries = (List<Document>) myDoc.get("data-history");
+                    List<Document> entries = null;
+                    if (myDoc != null) {
+                        entries = (List<org.bson.Document>) myDoc.get("data-history");
+                    }
 
-                    if(!entries.isEmpty()) {
-                        Document mostRecent = entries.get(0);
+                    if (entries != null && !entries.isEmpty()) {
+                        Document mostRecent = entries.get(entries.size() - 1);
                         initialEntry = new ReplacementEntry(
                                 mostRecent.getInteger("id"),
                                 ncid,
@@ -219,50 +222,55 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                                 mostRecent.getString("mail_state"),
                                 mostRecent.getString("mail_zipcode")
                         );
+                        System.out.println(initialEntry);
                     }
 
-                    if(initialEntry != null) {
-                        for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
+                    if (initialEntry != null) {
+                        for (int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
                             String date = dates[startAtDate];
                             String attribute = attributes[startAtAttribute];
                             Field preField = ReplacementEntry.class.getField(attribute);
+
                             String preValue = (String) preField.get(initialEntry);
 
-                            sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
-                            rs = stmt.executeQuery(sql);
-                            if(!rs.isBeforeFirst()) {
-                                sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp >= '"+ date +"' ORDER BY timestamp ASC LIMIT 1;";
-                                rs = stmt.executeQuery(sql);
+                            FindIterable<Document> findIterable = collection.find(elemMatch("data-history", Document.parse("{ timestamp: { $gt: ISODate(\"" + date + "T00:00:00Z\")}}")));
+
+                            if (!findIterable.iterator().hasNext()) {
+                                findIterable = collection.find(elemMatch("data-history", Document.parse("{ timestamp: { $lte: ISODate(\"" + date + "T00:00:00Z\")}}")));
+                            }
+                            System.out.println(findIterable.iterator().next().toString());
+                            String newValue = null;
+
+                            for (Document document : findIterable) {
+                                System.out.println(document);
+                                Field field = ReplacementEntry.class.getField(attribute);
+                                field.set(initialEntry, document.getString(attribute));
+                                newValue = document.getString(1);
+                                System.out.println(newValue);
                             }
 
-                            String newValue = null;
-                            while(rs.next()) {
-                                Field field = ReplacementEntry.class.getField(attribute);
-                                field.set(initialEntry, rs.getString(1));
-                                newValue = rs.getString(1);
-                            }
-                            if(preValue != null && !preValue.equals(newValue)){
-                                System.out.println("#" + (i+1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue  + "---New: " + newValue);
+                            if (preValue != null && !preValue.equals(newValue)) {
+                                System.out.println("#" + (i + 1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue + "---New: " + newValue);
                                 //System.out.println("#" + (i+1) + "---SQL: " + sql);
                             }
 
-                            if(startAtAttribute < attributes.length -1) {
+                            if (startAtAttribute < attributes.length - 1) {
                                 startAtAttribute++;
                             } else {
                                 startAtAttribute = 0;
                             }
-                            if(startAtDate < dates.length -1) {
+                            if (startAtDate < dates.length - 1) {
                                 startAtDate++;
                             } else {
                                 startAtDate = 0;
                             }
                         }
-                    }
 
-                    // Time-out the process to inject further errors in addition to outdated values. This should account
-                    // for the fact that histories of different size take a different amount of time to process.
-                    long timeout = (Integer.parseInt(this.outdatedFrequency) * Integer.parseInt(this.processingTime));
-                    TimeUnit.MILLISECONDS.sleep(timeout);
+                        // Time-out the process to inject further errors in addition to outdated values. This should account
+                        // for the fact that histories of different size take a different amount of time to process.
+                        long timeout = (Integer.parseInt(this.outdatedFrequency) * Integer.parseInt(this.processingTime));
+                        TimeUnit.MILLISECONDS.sleep(timeout);
+                    }
                 }
             }
             mongoClient.close();
@@ -274,12 +282,12 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public boolean reachedEnd() throws IOException {
+    public boolean reachedEnd() {
         return true;
     }
 
     @Override
-    public HistoryObjects nextRecord(HistoryObjects toReuse) throws IOException {
+    public HistoryObjects nextRecord(HistoryObjects toReuse) {
         log("toReuse" + sheetInputSplit1 + " is " + toReuse.toString());
         HistoryObjects historyObjects = this.historyIterator.next();
         log("Next record for " + sheetInputSplit1 + " is " + historyObjects.toString());
@@ -287,7 +295,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log("Sheet " + sheetInputSplit1 + " closed");
         // not needed
     }
