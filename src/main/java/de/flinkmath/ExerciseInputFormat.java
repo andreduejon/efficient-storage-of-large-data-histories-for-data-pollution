@@ -1,6 +1,7 @@
 package de.flinkmath;
 
 import com.mongodb.client.*;
+import com.mongodb.client.model.UnwindOptions;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.configuration.ConfigOption;
@@ -9,17 +10,27 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
 import org.bson.Document;
 import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Aggregates.limit;
+import static com.mongodb.client.model.Aggregates.match;
+import static com.mongodb.client.model.Aggregates.project;
+import static com.mongodb.client.model.Aggregates.replaceRoot;
+import static com.mongodb.client.model.Aggregates.sort;
+import static com.mongodb.client.model.Aggregates.unwind;
+import static com.mongodb.client.model.Projections.include;
+import static com.mongodb.client.model.Sorts.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import java.util.concurrent.TimeUnit;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -222,7 +233,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                                 mostRecent.getString("mail_state"),
                                 mostRecent.getString("mail_zipcode")
                         );
-                        System.out.println(initialEntry);
                     }
 
                     if (initialEntry != null) {
@@ -230,28 +240,38 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                             String date = dates[startAtDate];
                             String attribute = attributes[startAtAttribute];
                             Field preField = ReplacementEntry.class.getField(attribute);
-
                             String preValue = (String) preField.get(initialEntry);
 
-                            FindIterable<Document> findIterable = collection.find(elemMatch("data-history", Document.parse("{ timestamp: { $gt: ISODate(\"" + date + "T00:00:00Z\")}}")));
-
+                            AggregateIterable<Document> findIterable = collection.aggregate(
+                                    Arrays.asList(
+                                            match(eq("_id", ncid)),
+                                            unwind("$data-history", new UnwindOptions().preserveNullAndEmptyArrays(true)),
+                                            replaceRoot("$data-history"),
+                                            match(gte("timestamp", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(date + "T00:00:00.000Z"))),
+                                            sort(ascending("timestamp")),
+                                            limit(1),
+                                            project(include(attribute))));
                             if (!findIterable.iterator().hasNext()) {
-                                findIterable = collection.find(elemMatch("data-history", Document.parse("{ timestamp: { $lte: ISODate(\"" + date + "T00:00:00Z\")}}")));
+                                findIterable =collection.aggregate(
+                                        Arrays.asList(
+                                                match(eq("_id", ncid)),
+                                                unwind("$data-history", new UnwindOptions().preserveNullAndEmptyArrays(true)),
+                                                replaceRoot("$data-history"),
+                                                match(lte("timestamp", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(date + "T00:00:00.000Z"))),
+                                                sort(descending("timestamp")),
+                                                limit(1),
+                                                project(include(attribute))));
                             }
-                            System.out.println(findIterable.iterator().next().toString());
                             String newValue = null;
 
                             for (Document document : findIterable) {
-                                System.out.println(document);
                                 Field field = ReplacementEntry.class.getField(attribute);
+                                newValue = document.getString(attribute);
                                 field.set(initialEntry, document.getString(attribute));
-                                newValue = document.getString(1);
-                                System.out.println(newValue);
                             }
 
                             if (preValue != null && !preValue.equals(newValue)) {
                                 System.out.println("#" + (i + 1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue + "---New: " + newValue);
-                                //System.out.println("#" + (i+1) + "---SQL: " + sql);
                             }
 
                             if (startAtAttribute < attributes.length - 1) {
