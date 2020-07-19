@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
@@ -9,8 +9,6 @@ import org.apache.flink.core.io.InputSplitAssigner;
 
 import java.io.*;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +33,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public BaseStatistics getStatistics(BaseStatistics baseStatistics) throws IOException {
+    public BaseStatistics getStatistics(BaseStatistics baseStatistics) {
         // not available
         return null;
     }
@@ -108,7 +106,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
+    public void open(SheetInputSplit1 sheetInputSplit1) {
         String m1 = "";
         String m2 = "";
         String m3 = "";
@@ -231,12 +229,12 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public boolean reachedEnd() throws IOException {
+    public boolean reachedEnd() {
         return true;
     }
 
     @Override
-    public HistoryObjects nextRecord(HistoryObjects toReuse) throws IOException {
+    public HistoryObjects nextRecord(HistoryObjects toReuse) {
         log("toReuse" + sheetInputSplit1 + " is " + toReuse.toString());
         HistoryObjects historyObjects = this.historyIterator.next();
         log("Next record for " + sheetInputSplit1 + " is " + historyObjects.toString());
@@ -244,7 +242,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log("Sheet " + sheetInputSplit1 + " closed");
         // not needed
     }

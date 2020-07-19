@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 public class Solution {
 
