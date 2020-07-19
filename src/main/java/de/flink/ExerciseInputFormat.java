@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
@@ -74,7 +74,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public BaseStatistics getStatistics(BaseStatistics baseStatistics) throws IOException {
+    public BaseStatistics getStatistics(BaseStatistics baseStatistics) {
         // not available
         return null;
     }
@@ -96,50 +96,6 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
         return inputSplits;
     }
 
-    /*
-    @Override
-    public SheetInputSplit5[] createInputSplits(int i) throws IOException {
-        log("Creating input splits");
-        List<String> sheetConfigStrings = readFile(configFileName);
-        return IntStream.range(0, sheetConfigStrings.size())
-                .mapToObj((int index) -> {
-                    String sheetConfigString = sheetConfigStrings.get(index);
-                    String[] sheetConfigSplit = sheetConfigString.split(" ");
-                    return new SheetInputSplit5(
-                            index,
-                            sheetConfigSplit[0],
-                            sheetConfigSplit[1],
-                            sheetConfigSplit[2],
-                            sheetConfigSplit[3],
-                            sheetConfigSplit[4],
-                            sheetConfigSplit[5]);
-                }).toArray(SheetInputSplit5[]::new);
-    }
-
-    @Override
-    public SheetInputSplit10[] createInputSplits(int i) throws IOException {
-        log("Creating input splits");
-        List<String> sheetConfigStrings = readFile(configFileName);
-        return IntStream.range(0, sheetConfigStrings.size())
-                .mapToObj((int index) -> {
-                    String sheetConfigString = sheetConfigStrings.get(index);
-                    String[] sheetConfigSplit = sheetConfigString.split(" ");
-                    return new SheetInputSplit10(
-                            index,
-                            sheetConfigSplit[0],
-                            sheetConfigSplit[1],
-                            sheetConfigSplit[2],
-                            sheetConfigSplit[3],
-                            sheetConfigSplit[4],
-                            sheetConfigSplit[5],
-                            sheetConfigSplit[6],
-                            sheetConfigSplit[7],
-                            sheetConfigSplit[8],
-                            sheetConfigSplit[9],
-                            sheetConfigSplit[10]);
-                }).toArray(SheetInputSplit10[]::new);
-    }
-    */
     @Override
     public InputSplitAssigner getInputSplitAssigner(SheetInputSplit1[] sheetInputSplits) {
         log("InputSplitAssigner requested");
@@ -147,7 +103,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void open(SheetInputSplit1 sheetInputSplit1) throws IOException {
+    public void open(SheetInputSplit1 sheetInputSplit1) {
         this.sheetInputSplit1 = sheetInputSplit1;
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
         try {
@@ -265,7 +221,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public boolean reachedEnd() throws IOException {
+    public boolean reachedEnd() {
         return true;
     }
 
@@ -278,7 +234,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log("Sheet " + sheetInputSplit1 + " closed");
         // not needed
     }

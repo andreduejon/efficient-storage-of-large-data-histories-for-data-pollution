@@ -1,10 +1,8 @@
-package de.flinkmath;
+package de.flink;
 
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.configuration.Configuration;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class SolutionOutputFormat implements OutputFormat<Solution> {
@@ -24,9 +22,6 @@ public class SolutionOutputFormat implements OutputFormat<Solution> {
     @Override
     public void writeRecord(Solution solution) throws IOException {
         log("Task " + taskNumber + "processed " + solution.getNcid());
-        /*BufferedWriter writer = new BufferedWriter(new FileWriter(solution.getFileName()));
-        writer.write("" + solution.getResult());
-        writer.close();*/
     }
 
     @Override
