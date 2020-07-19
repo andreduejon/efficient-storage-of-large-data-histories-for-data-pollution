@@ -17,6 +17,7 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     public static final ConfigOption<String> CONFIG_FILE_NAME_OPTION = ConfigOptions.key("de.flinkmath.filename").defaultValue("");
     public static final ConfigOption<String> CONFIG_PROCESSING_TIME = ConfigOptions.key("de.flinkmath.processingtime").defaultValue("1");
 
+    private Iterator<HistoryObjects> historyIterator;
     private String configFileName;
     private String processingTime;
     private SheetInputSplit1 sheetInputSplit1;
@@ -174,12 +176,12 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public boolean reachedEnd() throws IOException {
+    public boolean reachedEnd() {
         return true;
     }
 
     @Override
-    public HistoryObjects nextRecord(HistoryObjects toReuse) throws IOException {
+    public HistoryObjects nextRecord(HistoryObjects toReuse) {
         log("toReuse" + sheetInputSplit1 + " is " + toReuse.toString());
         HistoryObjects historyObjects = this.historyIterator.next();
         log("Next record for " + sheetInputSplit1 + " is " + historyObjects.toString());
@@ -187,7 +189,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log("Sheet " + sheetInputSplit1 + " closed");
         // not needed
     }
