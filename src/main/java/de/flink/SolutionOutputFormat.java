@@ -1,10 +1,8 @@
-package de.flinkmath;
+package de.flink;
 
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.configuration.Configuration;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class SolutionOutputFormat implements OutputFormat<Solution> {

@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 
 import org.apache.flink.api.java.ExecutionEnvironment;
