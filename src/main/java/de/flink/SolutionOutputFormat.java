@@ -1,10 +1,8 @@
-package de.flinkmath;
+package de.flink;
 
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.configuration.Configuration;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class SolutionOutputFormat implements OutputFormat<Solution> {
@@ -16,21 +14,18 @@ public class SolutionOutputFormat implements OutputFormat<Solution> {
     }
 
     @Override
-    public void open(int taskNumber, int numTasks) throws IOException {
+    public void open(int taskNumber, int numTasks) {
         log("Opening for taskNumber " + taskNumber + " " + numTasks + " parallel tasks");
         this.taskNumber = taskNumber;
     }
 
     @Override
-    public void writeRecord(Solution solution) throws IOException {
+    public void writeRecord(Solution solution) {
         log("Task " + taskNumber + "processed " + solution.getNcid());
-        /*BufferedWriter writer = new BufferedWriter(new FileWriter(solution.getFileName()));
-        writer.write("" + solution.getResult());
-        writer.close();*/
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         log("Closing task" + taskNumber);
     }
 
