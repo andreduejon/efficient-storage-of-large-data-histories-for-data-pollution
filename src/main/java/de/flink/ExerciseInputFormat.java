@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 import com.datastax.driver.core.*;
 import org.apache.flink.api.common.io.InputFormat;

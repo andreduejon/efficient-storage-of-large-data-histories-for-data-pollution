@@ -1,4 +1,4 @@
-package de.flinkmath;
+package de.flink;
 
 import java.time.LocalDateTime;
 
