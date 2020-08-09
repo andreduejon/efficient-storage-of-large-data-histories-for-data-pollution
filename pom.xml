@@ -5,6 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.flink</groupId>
+    <!-- CHANGE NAME -->
     <artifactId>history</artifactId>
     <version>1.0</version>
     <properties>
@@ -23,11 +24,12 @@
             <artifactId>flink-java</artifactId>
             <version>1.9.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.2.9</version>
-        </dependency>
+
+        <!-- ADD DRIVER LIBARY FOR DATABASE -->
+
+
+
+        <!-- -->
     </dependencies>
     <build>
         <plugins>

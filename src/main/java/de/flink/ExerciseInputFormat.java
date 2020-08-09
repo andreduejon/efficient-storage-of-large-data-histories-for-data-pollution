@@ -63,120 +63,27 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
 
     @Override
     public void open(SheetInputSplit1 sheetInputSplit1) {
-        String m1 = "";
-        String m2 = "";
-        String m3 = "";
-        String m4 = "";
-        String m5 = "";
         this.sheetInputSplit1 = sheetInputSplit1;
         String[] ncidBatch = sheetInputSplit1.getNcid1().split("#");
         try {
-            long startTime2 = System.nanoTime();
-            Class.forName("org.postgresql.Driver");
-            Connection c = null;
-            Statement stmt = null;
-            c = DriverManager
-                    .getConnection("jdbc:postgresql://localhost:5432/postgres",
-                            "postgres", "postgres");
-            long endTime2 = System.nanoTime();
-            m1 = "Connection: " + (endTime2 - startTime2) + "ns";
+
+            // 1. CREATE CONNECTION
 
             long startTime3 = System.nanoTime();
             if (ncidBatch.length > 0) {
                 for (String ncid : ncidBatch) {
-                    long p1 = System.nanoTime();
-                    long q1 = System.nanoTime();
-                    stmt = c.createStatement();
-                    // History Object
-                    HistoryObjects obj = new HistoryObjects();
-                    String sqlObject = "Select * from public.objects WHERE nc_id = '" + ncid + "';";
-                    ResultSet rs = stmt.executeQuery(sqlObject);
-                    while (rs.next()) {
-                        obj.setNcid(rs.getString("nc_id"));
-                        obj.setUpdates(rs.getInt("updates"));
-                        obj.setUpdateGroups(rs.getInt("update_groups"));
-                        obj.setCheckpoints(rs.getInt("checkpoints"));
-                        obj.setCheckpointList(new ArrayList<>());
-                        obj.setUpdateList(new ArrayList<>());
-                    }
-                    String sqlUpdates = "Select * from public.updates WHERE nc_id = '" + ncid + "';";
-                    rs = stmt.executeQuery(sqlUpdates);
-                    while (rs.next()) {
-                        Update update = new Update(
-                                rs.getString("nc_id"),
-                                rs.getInt("update_id"),
-                                rs.getInt("update_group"),
-                                rs.getTimestamp("timestamp").toLocalDateTime(),
-                                rs.getString("attribute"),
-                                rs.getString("value")
-                        );
-                        obj.addUpdateList(update);
-                    }
-                    String sqlCheckpoints = "Select * from public.checkpoints WHERE nc_id = '" + ncid + "' AND last_update IS NULL;";
-                    rs = stmt.executeQuery(sqlCheckpoints);
-                    while (rs.next()) {
-                        Checkpoint checkpoint = new Checkpoint(
-                                rs.getString("nc_id"),
-                                rs.getInt("checkpoint_id"),
-                                rs.getInt("last_update"),
-                                rs.getTimestamp("timestamp").toLocalDateTime(),
-                                rs.getString("county_id"),
-                                rs.getString("county_desc"),
-                                rs.getString("last_name"),
-                                rs.getString("first_name"),
-                                rs.getString("midl_name"),
-                                rs.getString("house_num"),
-                                rs.getString("street_dir"),
-                                rs.getString("street_name"),
-                                rs.getString("res_city_desc"),
-                                rs.getString("state_cd"),
-                                rs.getString("zip_code"),
-                                rs.getString("area_cd"),
-                                rs.getString("phone_num"),
-                                rs.getString("race_code"),
-                                rs.getString("race_desc"),
-                                rs.getString("ethnic_code"),
-                                rs.getString("ethnic_desc"),
-                                rs.getString("party_cd"),
-                                rs.getString("party_desc"),
-                                rs.getString("sex_code"),
-                                rs.getString("sex"),
-                                rs.getString("age"),
-                                rs.getString("birth_place"),
-                                rs.getString("age_group"),
-                                rs.getString("name_prefx_cd"),
-                                rs.getString("name_sufx_cd"),
-                                rs.getString("half_code"),
-                                rs.getString("street_type_cd"),
-                                rs.getString("street_sufx_cd"),
-                                rs.getString("unit_designator"),
-                                rs.getString("unit_num"),
-                                rs.getString("mail_addr1"),
-                                rs.getString("mail_addr2"),
-                                rs.getString("mail_addr3"),
-                                rs.getString("mail_addr4"),
-                                rs.getString("mail_city"),
-                                rs.getString("mail_state"));
-                        obj.addCheckPointList(checkpoint);
-                    }
-                    long q1e = System.nanoTime();
-                    m2 = "Query: " + (q1e - q1) + "ns";
+                    // 2. RETRIEVE RELEVANT DATA AND PROCESS IT
 
-                    long p1e = System.nanoTime();
-                    m3 = "Processing: " + (p1e - p1) + "ns";
-
+                    // 3. TIME-OUT PROCESS IF NEEDED
                     // Time-out the process to simulate more realistic calculation pattern. This should account
                     // for the fact that histories of different size take a different amount of time to process.
-                    long timeout = Math.round(obj.getUpdateList().size() * Float.parseFloat(this.processingTime));
-                    m4 = "Timeout: " + timeout;
-                    m5 = "Updates: " + obj.getUpdateList().size();
-                    TimeUnit.MILLISECONDS.sleep(timeout);
+                    // long timeout = Math.round(VALUE * Float.parseFloat(this.processingTime));
+                    // TimeUnit.MILLISECONDS.sleep(timeout);
                 }
             }
-            c.close();
-            long endTime3 = System.nanoTime();
-            long timeElapsed3 = endTime3 - startTime3;
-            System.out.println("Complete: " + timeElapsed3 / 1000000 + "ms - " + m1 + " - " + m2 + " - " + m3 + " - " + m4 + " - " + m5);
+            // 4. CLOSE CONNECTION IF NEEDED
+
+            // 5. LOG INFORMATION IF NEEDED
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
