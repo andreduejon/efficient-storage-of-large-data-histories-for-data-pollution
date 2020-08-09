@@ -6,6 +6,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -16,6 +17,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -132,81 +134,96 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                         get.addFamily(Bytes.toBytes("data"));
 
                         Result rs = table.get(get);
-                        if (rs.getExists()) {
+                        if (!rs.isEmpty()) {
                             initialEntry = new ReplacementEntry(
                                     0,
                                     ncid,
                                     null,
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("county_id"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("county_desc"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("last_name"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("first_name"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("midl_name"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("house_num"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("street_dir"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("street_name"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("res_city_desc"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("state_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("zip_code"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("area_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("phone_num"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("race_code"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("race_desc"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("ethnic_code"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("ethnic_desc"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("party_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("party_desc"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("sex_code"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("sex"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("age"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("birth_place"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("age_group"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("name_prefx_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("name_sufx_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("half_code"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("street_type_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("street_sufx_cd"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("unit_designator"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("unit_num"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_addr1"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_addr2"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_addr3"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_addr4"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_city"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_state"))),
-                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"),Bytes.toBytes("mail_zipcode"))));
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("county_id"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("county_desc"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("last_name"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("first_name"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("midl_name"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("house_num"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("street_dir"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("street_name"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("res_city_desc"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("state_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("zip_code"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("area_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("phone_num"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("race_code"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("race_desc"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("ethnic_code"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("ethnic_desc"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("party_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("party_desc"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("sex_code"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("sex"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("age"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("birth_place"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("age_group"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("name_prefx_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("name_sufx_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("half_code"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("street_type_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("street_sufx_cd"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("unit_designator"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("unit_num"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_addr1"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_addr2"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_addr3"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_addr4"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_city"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_state"))),
+                                    Bytes.toString(rs.getValue(Bytes.toBytes("data"), Bytes.toBytes("mail_zipcode"))));
 
-                            for(int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
-                                String date = dates[startAtDate];
+                            for (int i = 0; i < Long.parseLong(this.outdatedFrequency); i++) {
+                                long date = Long.parseLong(dates[startAtDate]);
                                 String attribute = attributes[startAtAttribute];
                                 Field preField = ReplacementEntry.class.getField(attribute);
                                 String preValue = (String) preField.get(initialEntry);
 
-                                sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp <= '"+ date +"' ORDER BY timestamp DESC LIMIT 1;";
-                                rs = stmt.executeQuery(sql);
 
-                                if(!rs.isBeforeFirst()) {
-                                    sql = "SELECT " + attribute +" FROM replacement WHERE nc_id='" + ncid + "' AND timestamp >= '"+ date +"' ORDER BY timestamp ASC LIMIT 1;";
-                                    rs = stmt.executeQuery(sql);
+                                Get getSpecific = new Get(Bytes.toBytes(ncid))
+                                        .addColumn(Bytes.toBytes("data"), Bytes.toBytes(attribute))
+                                        .readAllVersions()
+                                        .setTimestamp(date);
+                                rs = table.get(getSpecific);
+
+                                if(rs.isEmpty()) {
+                                    Get getRange = new Get(Bytes.toBytes(ncid))
+                                            .addColumn(Bytes.toBytes("data"), Bytes.toBytes(attribute))
+                                            .readAllVersions()
+                                            .setTimeRange(0, Long.MAX_VALUE);
+
+                                    rs = table.get(getRange);
                                 }
 
                                 String newValue = null;
-                                while(rs.next()) {
+                                if (!rs.isEmpty()) {
                                     Field field = ReplacementEntry.class.getField(attribute);
-                                    field.set(initialEntry, rs.getString(1));
-                                    newValue = rs.getString(1);
+                                    for(Cell cell : rs.listCells()) {
+                                        newValue = Bytes.toString(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());
+                                        if(cell.getTimestamp() == date) {
+                                            break;
+                                        }
+                                        if(cell.getTimestamp() < date) {
+                                            break;
+                                        }
+                                    }
+                                    field.set(initialEntry, newValue);
                                 }
-                                if(preValue != null && !preValue.equals(newValue)){
-                                    System.out.println("#" + (i+1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue  + "---New: " + newValue);
-                                    //System.out.println("#" + (i+1) + "---SQL: " + sql);
+                                if (preValue != null && !preValue.equals(newValue)) {
+                                    System.out.println("#" + (i + 1) + "---NCID: " + ncid + "---Date: " + date + "---Attribute: " + attribute + "---Old: " + preValue + "---New: " + newValue);
                                 }
 
-                                if(startAtAttribute < attributes.length -1) {
+                                if (startAtAttribute < attributes.length - 1) {
                                     startAtAttribute++;
                                 } else {
                                     startAtAttribute = 0;
                                 }
-                                if(startAtDate < dates.length -1) {
+                                if (startAtDate < dates.length - 1) {
                                     startAtDate++;
                                 } else {
                                     startAtDate = 0;
@@ -221,9 +238,7 @@ public class ExerciseInputFormat implements InputFormat<HistoryObjects, SheetInp
                     }
                     table.close();
                     connection.close();
-
-
-
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
